@@ -14,16 +14,334 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      barcode_packs: {
+        Row: {
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price: number
+          quantity: number
+        }
+        Insert: {
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price: number
+          quantity: number
+        }
+        Update: {
+          barcode_type?: Database["public"]["Enums"]["barcode_type"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          quantity?: number
+        }
+        Relationships: []
+      }
+      barcode_ranges: {
+        Row: {
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          created_at: string
+          end_number: string
+          id: string
+          is_locked: boolean | null
+          is_sold: boolean | null
+          locked_at: string | null
+          start_number: string
+        }
+        Insert: {
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          created_at?: string
+          end_number: string
+          id?: string
+          is_locked?: boolean | null
+          is_sold?: boolean | null
+          locked_at?: string | null
+          start_number: string
+        }
+        Update: {
+          barcode_type?: Database["public"]["Enums"]["barcode_type"]
+          created_at?: string
+          end_number?: string
+          id?: string
+          is_locked?: boolean | null
+          is_sold?: boolean | null
+          locked_at?: string | null
+          start_number?: string
+        }
+        Relationships: []
+      }
+      certificates: {
+        Row: {
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          barcodes: string[]
+          certificate_number: string
+          company_name: string
+          created_at: string
+          id: string
+          issue_date: string
+          order_id: string
+          pdf_url: string | null
+        }
+        Insert: {
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          barcodes: string[]
+          certificate_number: string
+          company_name: string
+          created_at?: string
+          id?: string
+          issue_date?: string
+          order_id: string
+          pdf_url?: string | null
+        }
+        Update: {
+          barcode_type?: Database["public"]["Enums"]["barcode_type"]
+          barcodes?: string[]
+          certificate_number?: string
+          company_name?: string
+          created_at?: string
+          id?: string
+          issue_date?: string
+          order_id?: string
+          pdf_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gepir_registry: {
+        Row: {
+          barcode_number: string
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          company_contact: string | null
+          company_name: string
+          country: string | null
+          id: string
+          is_public: boolean | null
+          order_id: string | null
+          registration_date: string
+          user_id: string | null
+        }
+        Insert: {
+          barcode_number: string
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          company_contact?: string | null
+          company_name: string
+          country?: string | null
+          id?: string
+          is_public?: boolean | null
+          order_id?: string | null
+          registration_date?: string
+          user_id?: string | null
+        }
+        Update: {
+          barcode_number?: string
+          barcode_type?: Database["public"]["Enums"]["barcode_type"]
+          company_contact?: string | null
+          company_name?: string
+          country?: string | null
+          id?: string
+          is_public?: boolean | null
+          order_id?: string | null
+          registration_date?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gepir_registry_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_barcodes: {
+        Row: {
+          barcode_number: string
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          created_at: string
+          id: string
+          order_id: string
+        }
+        Insert: {
+          barcode_number: string
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          created_at?: string
+          id?: string
+          order_id: string
+        }
+        Update: {
+          barcode_number?: string
+          barcode_type?: Database["public"]["Enums"]["barcode_type"]
+          created_at?: string
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_barcodes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          certificate_number: string | null
+          completed_at: string | null
+          created_at: string
+          end_number: string
+          id: string
+          pack_id: string | null
+          payment_reference: string | null
+          quantity: number
+          start_number: string
+          status: Database["public"]["Enums"]["order_status"]
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          barcode_type: Database["public"]["Enums"]["barcode_type"]
+          certificate_number?: string | null
+          completed_at?: string | null
+          created_at?: string
+          end_number: string
+          id?: string
+          pack_id?: string | null
+          payment_reference?: string | null
+          quantity: number
+          start_number: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          barcode_type?: Database["public"]["Enums"]["barcode_type"]
+          certificate_number?: string | null
+          completed_at?: string | null
+          created_at?: string
+          end_number?: string
+          id?: string
+          pack_id?: string | null
+          payment_reference?: string | null
+          quantity?: number
+          start_number?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "barcode_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          address: string | null
+          city: string | null
+          company_name: string | null
+          contact_name: string | null
+          country: string | null
+          created_at: string
+          email: string
+          id: string
+          phone: string | null
+          postal_code: string | null
+          state: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "customer"
+      barcode_type: "UPC-A" | "EAN-13"
+      order_status: "pending" | "paid" | "completed" | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +468,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "customer"],
+      barcode_type: ["UPC-A", "EAN-13"],
+      order_status: ["pending", "paid", "completed", "refunded"],
+    },
   },
 } as const
