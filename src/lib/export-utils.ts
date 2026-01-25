@@ -53,18 +53,27 @@ async function svgToDataUrl(
   });
 }
 
-// Generate SVG element for a barcode
-function generateBarcodeSVG(code: string, type: BarcodeType): SVGElement {
+// Generate SVG element for a barcode - HD quality with higher resolution
+function generateBarcodeSVG(code: string, type: BarcodeType, hdMode: boolean = true): SVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  
+  // HD settings for print-ready output (300+ DPI equivalent)
+  const width = hdMode ? 4 : 2;  // Double width for HD
+  const height = hdMode ? 200 : 100;  // Double height for HD
+  const fontSize = hdMode ? 32 : 16;  // Double font size for HD
+  const margin = hdMode ? 20 : 10;  // Double margin for HD
+  
   JsBarcode(svg, code, {
     format: type === "UPC-A" ? "upc" : "ean13",
-    width: 2,
-    height: 100,
+    width: width,
+    height: height,
     displayValue: true,
-    fontSize: 16,
-    margin: 10,
+    fontSize: fontSize,
+    margin: margin,
     background: "#ffffff",
     lineColor: "#000000",
+    textMargin: hdMode ? 8 : 4,
+    fontOptions: "bold",
   });
   return svg;
 }
@@ -83,8 +92,7 @@ export async function exportAsZip(
   // Generate images
   for (let i = 0; i < barcodes.length; i++) {
     const code = barcodes[i];
-    const svg = generateBarcodeSVG(code, type);
-
+    const svg = generateBarcodeSVG(code, type, true); // HD mode enabled
     // Add SVG
     const svgString = new XMLSerializer().serializeToString(svg);
     svgFolder?.file(`${code}.svg`, svgString);
