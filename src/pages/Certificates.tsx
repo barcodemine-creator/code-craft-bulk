@@ -15,6 +15,9 @@ export default function Certificates() {
 
   const handleDownloadCertificate = async (order: typeof orders[0]) => {
     try {
+      const accountNumber = order.certificate_number?.replace("CERT-", "") || order.id.slice(0, 5).toUpperCase();
+      const verificationUrl = `${window.location.origin}/gepir?barcode=${order.start_number}`;
+      
       await generateCertificatePDF({
         certificateNumber: order.certificate_number || order.id.slice(0, 12).toUpperCase(),
         companyName: profile?.company_name || "Your Company",
@@ -23,6 +26,9 @@ export default function Certificates() {
         barcodeType: order.barcode_type,
         issueDate: new Date(order.completed_at || order.created_at),
         quantity: order.quantity,
+        accountNumber: accountNumber,
+        orderId: order.id,
+        verificationUrl: verificationUrl,
       });
       toast.success("Certificate downloaded!");
     } catch (error) {
