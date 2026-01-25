@@ -1,15 +1,28 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, Building2, MapPin, Calendar, Globe } from "lucide-react";
+import { Search, Building2, MapPin, Calendar, Globe, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useGepirSearch, GepirEntry } from "@/hooks/useGepirRegistry";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 export default function GepirLookup() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [submittedTerm, setSubmittedTerm] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialBarcode = searchParams.get("barcode") || "";
+  
+  const [searchTerm, setSearchTerm] = useState(initialBarcode);
+  const [submittedTerm, setSubmittedTerm] = useState(initialBarcode);
   const { data: results = [], isLoading } = useGepirSearch(submittedTerm);
+
+  // Auto-search when coming from QR code
+  useEffect(() => {
+    const barcodeParam = searchParams.get("barcode");
+    if (barcodeParam && barcodeParam.length >= 5) {
+      setSearchTerm(barcodeParam);
+      setSubmittedTerm(barcodeParam);
+    }
+  }, [searchParams]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,6 +31,8 @@ export default function GepirLookup() {
     }
   };
 
+  const isFromQR = !!searchParams.get("barcode");
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -25,11 +40,39 @@ export default function GepirLookup() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-3xl font-bold text-foreground">GEPIR Lookup</h1>
+          <h1 className="text-3xl font-bold text-foreground">
+            {isFromQR ? "Barcode Verification" : "GEPIR Lookup"}
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Search our barcode registry to find the company registered to a GTIN/UPC/EAN.
+            {isFromQR 
+              ? "Verify the authenticity and ownership of this barcode number."
+              : "Search our barcode registry to find the company registered to a GTIN/UPC/EAN."}
           </p>
         </motion.div>
+
+        {/* Verification Badge for QR scans */}
+        {isFromQR && results.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-xl p-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                <ShieldCheck className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-green-700 dark:text-green-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Verified Barcode
+                </h2>
+                <p className="text-green-600 dark:text-green-400 text-sm">
+                  This barcode is registered in the BarcodeMine GEPIR database.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Search Form */}
         <motion.div

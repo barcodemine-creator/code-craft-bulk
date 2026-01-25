@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import QRCode from "qrcode";
 
 interface CertificateData {
   certificateNumber: string;
@@ -8,173 +9,219 @@ interface CertificateData {
   barcodeType: "UPC-A" | "EAN-13";
   issueDate: Date;
   quantity: number;
+  accountNumber?: string;
+  orderId?: string;
+  verificationUrl?: string;
+}
+
+async function generateQRCodeDataUrl(url: string): Promise<string> {
+  try {
+    return await QRCode.toDataURL(url, {
+      width: 100,
+      margin: 1,
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    });
+  } catch (error) {
+    console.error("Error generating QR code:", error);
+    return "";
+  }
 }
 
 export async function generateCertificatePDF(data: CertificateData): Promise<void> {
   const pdf = new jsPDF({
-    orientation: "portrait",
+    orientation: "landscape",
     unit: "mm",
     format: "a4",
   });
 
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 20;
+  const margin = 10;
 
-  // Background
+  // White background
   pdf.setFillColor(255, 255, 255);
   pdf.rect(0, 0, pageWidth, pageHeight, "F");
 
-  // Border
-  pdf.setDrawColor(59, 130, 246);
-  pdf.setLineWidth(2);
-  pdf.rect(10, 10, pageWidth - 20, pageHeight - 20);
+  // Main border - dark blue
+  pdf.setDrawColor(31, 41, 55);
+  pdf.setLineWidth(3);
+  pdf.rect(margin, margin, pageWidth - margin * 2, pageHeight - margin * 2);
 
-  // Inner decorative border
-  pdf.setDrawColor(200, 200, 200);
+  // Inner border
+  pdf.setDrawColor(100, 116, 139);
   pdf.setLineWidth(0.5);
-  pdf.rect(15, 15, pageWidth - 30, pageHeight - 30);
+  pdf.rect(margin + 3, margin + 3, pageWidth - margin * 2 - 6, pageHeight - margin * 2 - 6);
 
-  // Header
+  // Header background - blue gradient effect (solid blue)
+  pdf.setFillColor(30, 58, 138);
+  pdf.rect(margin + 4, margin + 4, pageWidth - margin * 2 - 8, 45, "F");
+
+  // BarCodeMine header text
+  pdf.setFontSize(32);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("BARCODEMINE", pageWidth / 2, margin + 22, { align: "center" });
+
+  // Certificate of GTIN Assignment title (cursive style simulation)
+  pdf.setFontSize(24);
+  pdf.setFont("times", "italic");
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("Certificate of ", pageWidth / 2 - 50, margin + 38, { align: "center" });
+  
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("GTIN Assignment", pageWidth / 2 + 30, margin + 38, { align: "center" });
+
+  // Company name section - large and prominent
+  let yPos = margin + 60;
   pdf.setFontSize(28);
   pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(30, 64, 175);
-  pdf.text("CERTIFICATE", pageWidth / 2, 45, { align: "center" });
-  
-  pdf.setFontSize(16);
-  pdf.setFont("helvetica", "normal");
-  pdf.setTextColor(100, 100, 100);
-  pdf.text("of GTIN Assignment", pageWidth / 2, 55, { align: "center" });
-
-  // Decorative line
-  pdf.setDrawColor(59, 130, 246);
-  pdf.setLineWidth(1);
-  pdf.line(60, 65, pageWidth - 60, 65);
-
-  // Certificate Number
-  pdf.setFontSize(10);
-  pdf.setTextColor(100, 100, 100);
-  pdf.text(`Certificate No: ${data.certificateNumber}`, pageWidth / 2, 75, { align: "center" });
-
-  // Main Content
-  let yPos = 95;
-
-  pdf.setFontSize(12);
-  pdf.setTextColor(60, 60, 60);
-  pdf.text("This is to certify that", pageWidth / 2, yPos, { align: "center" });
-
-  yPos += 15;
-  pdf.setFontSize(20);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(30, 30, 30);
+  pdf.setTextColor(51, 65, 85);
   pdf.text(data.companyName || "Company Name", pageWidth / 2, yPos, { align: "center" });
 
-  if (data.contactName) {
-    yPos += 10;
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(80, 80, 80);
-    pdf.text(`(${data.contactName})`, pageWidth / 2, yPos, { align: "center" });
-  }
-
-  yPos += 15;
+  // "Is Assigned the Following Barcode Number(s) (GTINs):" text
+  yPos += 12;
   pdf.setFontSize(12);
   pdf.setFont("helvetica", "normal");
-  pdf.setTextColor(60, 60, 60);
-  pdf.text("has been assigned the following Global Trade Item Numbers (GTINs):", pageWidth / 2, yPos, { align: "center" });
+  pdf.setTextColor(71, 85, 105);
+  pdf.text("Is Assigned the Following Barcode Number(s) (GTINs):", pageWidth / 2, yPos, { align: "center" });
 
-  // Barcode Type
+  // Barcode range display
   yPos += 15;
+  pdf.setFontSize(11);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text(`Quantity(${data.quantity}):`, pageWidth / 2 - 60, yPos);
+
   pdf.setFontSize(14);
-  pdf.setFont("helvetica", "bold");
-  pdf.setTextColor(59, 130, 246);
-  pdf.text(`${data.barcodeType} Barcodes`, pageWidth / 2, yPos, { align: "center" });
-
-  // Barcode Range Box
-  yPos += 10;
-  pdf.setFillColor(248, 250, 252);
-  pdf.setDrawColor(200, 200, 200);
-  pdf.roundedRect(margin + 20, yPos, pageWidth - margin * 2 - 40, 35, 3, 3, "FD");
-
-  yPos += 12;
-  pdf.setFontSize(10);
-  pdf.setTextColor(100, 100, 100);
-  pdf.text("Assigned Range:", pageWidth / 2, yPos, { align: "center" });
-
-  yPos += 12;
-  pdf.setFontSize(16);
   pdf.setFont("courier", "bold");
-  pdf.setTextColor(30, 30, 30);
-  const rangeText = data.barcodes.length === 2 
-    ? `${data.barcodes[0]} - ${data.barcodes[1]}`
-    : data.barcodes.join(", ");
-  pdf.text(rangeText, pageWidth / 2, yPos, { align: "center" });
+  pdf.setTextColor(37, 99, 235);
+  const startBarcode = data.barcodes[0] || "";
+  const endBarcode = data.barcodes.length > 1 ? data.barcodes[data.barcodes.length - 1] : data.barcodes[0];
+  pdf.text(startBarcode, pageWidth / 2 - 15, yPos);
+  
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(51, 65, 85);
+  pdf.text("to", pageWidth / 2 + 30, yPos);
+  
+  pdf.setFont("courier", "bold");
+  pdf.setTextColor(37, 99, 235);
+  pdf.text(endBarcode, pageWidth / 2 + 45, yPos);
+
+  // Generate QR code for verification
+  const verificationUrl = data.verificationUrl || `https://barcodemine.com/gepir?barcode=${startBarcode}`;
+  const qrCodeDataUrl = await generateQRCodeDataUrl(verificationUrl);
+  
+  // Add QR code to PDF (left side)
+  if (qrCodeDataUrl) {
+    pdf.addImage(qrCodeDataUrl, "PNG", margin + 15, yPos - 15, 30, 30);
+  }
+
+  // Horizontal divider line
+  yPos += 15;
+  pdf.setDrawColor(200, 200, 200);
+  pdf.setLineWidth(0.3);
+  pdf.line(margin + 20, yPos, pageWidth - margin - 20, yPos);
+
+  // Left side - GTINs info section
+  yPos += 10;
+  const leftColX = margin + 20;
+  
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(30, 58, 138);
+  pdf.text("GTINs assigned for use in creating GS1", leftColX, yPos);
+  yPos += 5;
+  pdf.text("Identification Numbers", leftColX, yPos);
 
   yPos += 8;
-  pdf.setFontSize(10);
+  pdf.setFontSize(9);
   pdf.setFont("helvetica", "normal");
-  pdf.setTextColor(100, 100, 100);
-  pdf.text(`(${data.quantity} barcode${data.quantity > 1 ? "s" : ""})`, pageWidth / 2, yPos, { align: "center" });
-
-  // Features
-  yPos += 25;
-  const features = [
-    "✓ Lifetime ownership with no renewal fees",
-    "✓ Works on Amazon, retail stores, and all marketplaces",
-    "✓ Registered in BarcodeMine GEPIR database",
-    "✓ GS1-compliant check digit calculation",
+  pdf.setTextColor(71, 85, 105);
+  
+  const gtinTypes = [
+    "• Universal Product Code (UPC / GTIN-12)",
+    "• European Article Number (EAN / GTIN-13)",
+    "• Shipping Container Code (SCC / GTIN-14)",
+    "• Global Location Number (GLN)",
   ];
-
-  pdf.setFontSize(10);
-  pdf.setTextColor(60, 60, 60);
-  features.forEach((feature, index) => {
-    pdf.text(feature, pageWidth / 2, yPos + (index * 7), { align: "center" });
+  
+  gtinTypes.forEach((type, index) => {
+    pdf.text(type, leftColX, yPos + index * 5);
   });
 
-  yPos += 40;
-
-  // Issue Date
-  pdf.setFontSize(11);
-  pdf.setTextColor(80, 80, 80);
-  pdf.text(`Issue Date: ${data.issueDate.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  })}`, pageWidth / 2, yPos, { align: "center" });
-
-  // Signature Area
-  yPos += 25;
+  // Right side - Account details
+  const rightColX = pageWidth / 2 + 20;
+  let rightY = yPos - 13;
   
-  // Signature line
-  pdf.setDrawColor(150, 150, 150);
-  pdf.setLineWidth(0.5);
-  pdf.line(pageWidth / 2 - 40, yPos, pageWidth / 2 + 40, yPos);
-  
-  yPos += 6;
   pdf.setFontSize(10);
-  pdf.setTextColor(100, 100, 100);
-  pdf.text("Authorized Signature", pageWidth / 2, yPos, { align: "center" });
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(51, 65, 85);
+  
+  // Account Number
+  pdf.text("Account Number:", rightColX, rightY);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(data.accountNumber || data.certificateNumber.replace("CERT-", ""), rightColX + 40, rightY);
 
-  yPos += 6;
+  // GTIN Coordinator
+  rightY += 8;
+  pdf.setFont("helvetica", "bold");
+  pdf.text("GTIN Coordinator:", rightColX, rightY);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(data.contactName || "BarCodeMine Team", rightColX + 40, rightY);
+
+  // Order Number
+  rightY += 8;
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Order Number:", rightColX, rightY);
+  pdf.setFont("helvetica", "normal");
+  const orderNumber = data.orderId ? `BM${data.orderId.substring(0, 5).toUpperCase()}` : `BM${data.certificateNumber.replace("CERT-", "")}`;
+  pdf.text(orderNumber, rightColX + 40, rightY);
+
+  // Issued Date
+  rightY += 8;
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Issued Date:", rightColX, rightY);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(data.issueDate.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }), rightColX + 40, rightY);
+
+  // Footer section
+  const footerY = pageHeight - margin - 15;
+  
+  // Footer background
+  pdf.setFillColor(31, 41, 55);
+  pdf.rect(margin + 4, footerY - 5, pageWidth - margin * 2 - 8, 18, "F");
+
+  // Footer text
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(255, 255, 255);
+  pdf.text("BARCODEMINE.com", margin + 20, footerY + 5);
+
   pdf.setFontSize(9);
-  pdf.text("BarcodeMine.com", pageWidth / 2, yPos, { align: "center" });
+  pdf.setFont("helvetica", "normal");
+  pdf.text("ContactUs@BarCodeMine.com", margin + 80, footerY + 5);
 
-  // Footer
-  pdf.setFontSize(8);
-  pdf.setTextColor(150, 150, 150);
+  // Certification statement
+  pdf.setFontSize(7);
   pdf.text(
-    "This certificate is issued by BarcodeMine.com and serves as proof of GTIN ownership.",
-    pageWidth / 2,
-    pageHeight - 25,
-    { align: "center" }
+    "BarcodeMine hereby certifies the uniqueness of, as well as, assigns and transfers,",
+    pageWidth - margin - 100,
+    footerY + 2
   );
   pdf.text(
-    "For verification, visit our GEPIR registry at barcodemine.com/gepir",
-    pageWidth / 2,
-    pageHeight - 20,
-    { align: "center" }
+    "the Global Trade Item Number (GTIN) range listed above to the Certificate Holder.",
+    pageWidth - margin - 100,
+    footerY + 7
   );
 
-  // Save
-  pdf.save(`Certificate_${data.certificateNumber}.pdf`);
+  // Save the PDF
+  const fileName = `${data.certificateNumber}_certificate.pdf`;
+  pdf.save(fileName);
 }
