@@ -25,6 +25,11 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
   const baseLength = type === "UPC-A" ? 11 : 12;
   const fullLength = baseLength + 1; // includes check digit
 
+  const getLengths = (barcodeType: BarcodeType) => {
+    const base = barcodeType === "UPC-A" ? 11 : 12;
+    return { base, full: base + 1 };
+  };
+
   // Reset default value when switching type so it fits
   const handleTypeChange = (newType: BarcodeType) => {
     setType(newType);
@@ -33,6 +38,23 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
       setBaseNumber("071885267494");
     } else if (newType === "UPC-A" && baseNumber === "071885267494") {
       setBaseNumber("07920579974");
+    } else {
+      const { full } = getLengths(newType);
+      setBaseNumber((current) => current.slice(0, full));
+    }
+  };
+
+  const handleBaseNumberChange = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    const inferredType: BarcodeType = digits.length === 13 ? "EAN-13" : type;
+    const { full } = getLengths(inferredType);
+
+    if (digits.length <= full) {
+      if (inferredType !== type) {
+        setType(inferredType);
+        setError(null);
+      }
+      setBaseNumber(digits);
     }
   };
 
@@ -93,17 +115,14 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
           Starting Number ({baseLength} or {fullLength} digits)
         </Label>
         <Input
+          key={type}
           id="baseNumber"
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
+          maxLength={fullLength}
           value={baseNumber}
-          onChange={(e) => {
-            const value = e.target.value.replace(/\D/g, "");
-            if (value.length <= fullLength) {
-              setBaseNumber(value);
-            }
-          }}
+          onChange={(e) => handleBaseNumberChange(e.target.value)}
           placeholder={`Enter ${baseLength} or ${fullLength} digits`}
           className="font-mono text-lg tracking-wider h-12"
         />
