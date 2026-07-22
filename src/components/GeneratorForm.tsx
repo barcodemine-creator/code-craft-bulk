@@ -22,19 +22,42 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
   const [quantity, setQuantity] = useState("20");
   const [error, setError] = useState<string | null>(null);
 
-  const expectedLength = type === "UPC-A" ? 11 : 12;
+  const baseLength = type === "UPC-A" ? 11 : 12;
+  const fullLength = baseLength + 1; // includes check digit
+
+  // Reset default value when switching type so it fits
+  const handleTypeChange = (newType: BarcodeType) => {
+    setType(newType);
+    setError(null);
+    if (newType === "EAN-13" && baseNumber === "07920579974") {
+      setBaseNumber("071885267494");
+    } else if (newType === "UPC-A" && baseNumber === "071885267494") {
+      setBaseNumber("07920579974");
+    }
+  };
 
   const handleGenerate = useCallback(() => {
     setError(null);
 
-    // Validate base number
-    const validation = validateBaseNumber(baseNumber, type);
+    // Accept either base length or full length (auto-strip check digit)
+    let effectiveBase = baseNumber;
+    if (effectiveBase.length === fullLength) {
+      effectiveBase = effectiveBase.slice(0, baseLength);
+    }
+
+    const validation = validateBaseNumber(effectiveBase, type);
     if (!validation.valid) {
       setError(validation.error || "Invalid base number");
       return;
     }
 
-    // Validate quantity
+    if (effectiveBase.length !== baseLength) {
+      setError(
+        `Enter ${baseLength} digits (base) or ${fullLength} digits (full ${type}) — got ${effectiveBase.length}`
+      );
+      return;
+    }
+
     const qty = parseInt(quantity, 10);
     if (isNaN(qty) || qty < 1) {
       setError("Quantity must be at least 1");
@@ -46,12 +69,12 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
     }
 
     try {
-      const barcodes = generateBarcodeSequence(baseNumber, qty, type);
+      const barcodes = generateBarcodeSequence(effectiveBase, qty, type);
       onGenerate(barcodes, type);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     }
-  }, [baseNumber, quantity, type, onGenerate]);
+  }, [baseNumber, quantity, type, onGenerate, baseLength, fullLength]);
 
   return (
     <div className="space-y-6">
@@ -59,7 +82,7 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
         <Label className="text-sm font-medium text-foreground">
           Barcode Type
         </Label>
-        <BarcodeTypeSelector value={type} onChange={setType} />
+        <BarcodeTypeSelector value={type} onChange={handleTypeChange} />
       </div>
 
       <div className="space-y-3">
@@ -67,7 +90,7 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
           htmlFor="baseNumber"
           className="text-sm font-medium text-foreground"
         >
-          Starting Base Number ({expectedLength} digits)
+          Starting Number ({baseLength} or {fullLength} digits)
         </Label>
         <Input
           id="baseNumber"
@@ -77,17 +100,18 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
           value={baseNumber}
           onChange={(e) => {
             const value = e.target.value.replace(/\D/g, "");
-            if (value.length <= expectedLength) {
+            if (value.length <= fullLength) {
               setBaseNumber(value);
             }
           }}
-          placeholder={`Enter ${expectedLength} digits`}
+          placeholder={`Enter ${baseLength} or ${fullLength} digits`}
           className="font-mono text-lg tracking-wider h-12"
         />
         <p className="text-xs text-muted-foreground">
-          The check digit will be calculated automatically
+          Paste a full {fullLength}-digit {type} — we'll strip and recalculate the check digit automatically.
         </p>
       </div>
+
 
       <div className="space-y-3">
         <Label htmlFor="quantity" className="text-sm font-medium text-foreground">
