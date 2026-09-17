@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useOrders, useOrderBarcodes, Order } from "@/hooks/useOrders";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { exportAsZip } from "@/lib/export-utils";
+import { generateBarcodeSequence } from "@/lib/barcode-utils";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -23,18 +24,11 @@ export default function Orders() {
   const handleExport = async (order: Order) => {
     setExporting(order.id);
     try {
-      // Generate barcodes from start to end
-      const barcodeNumbers: string[] = [];
-      let current = BigInt(order.start_number);
-      const end = BigInt(order.end_number);
-      
-      while (current <= end) {
-        barcodeNumbers.push(current.toString().padStart(
-          order.barcode_type === "UPC-A" ? 12 : 13,
-          "0"
-        ));
-        current++;
-      }
+      const barcodeNumbers = generateBarcodeSequence(
+        String(order.start_number),
+        order.quantity,
+        order.barcode_type,
+      );
 
       await exportAsZip(barcodeNumbers, order.barcode_type);
       toast.success("Download started!");
