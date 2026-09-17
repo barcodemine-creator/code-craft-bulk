@@ -3,7 +3,7 @@ import { saveAs } from "file-saver";
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
 import JsBarcode from "jsbarcode";
-import type { BarcodeType } from "./barcode-utils";
+import { BARCODE_SPECS, type BarcodeType } from "./barcode-utils";
 
 export interface ExportProgress {
   current: number;
@@ -63,8 +63,8 @@ function generateBarcodeSVG(code: string, type: BarcodeType, hdMode: boolean = t
   const fontSize = hdMode ? 32 : 16;  // Double font size for HD
   const margin = hdMode ? 20 : 10;  // Double margin for HD
   
-  JsBarcode(svg, code, {
-    format: type === "UPC-A" ? "upc" : "ean13",
+  JsBarcode(svg, String(code), {
+    format: BARCODE_SPECS[type].format,
     width: width,
     height: height,
     displayValue: true,
@@ -120,6 +120,14 @@ export async function exportAsZip(
     ["Barcode Number", "Type"],
     ...barcodes.map((code) => [code, type]),
   ]);
+  for (let row = 2; row <= barcodes.length + 1; row++) {
+    const cell = worksheet[`A${row}`];
+    if (cell) {
+      cell.t = "s";
+      cell.v = String(cell.v);
+      cell.z = "@";
+    }
+  }
   XLSX.utils.book_append_sheet(workbook, worksheet, "Barcodes");
   const excelBuffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
   excelFolder?.file("barcodes.xlsx", excelBuffer);

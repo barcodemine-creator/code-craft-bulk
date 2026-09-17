@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { BarcodeTypeSelector } from "./BarcodeTypeSelector";
 import {
   type BarcodeType,
+  BARCODE_SPECS,
   validateBaseNumber,
   generateBarcodeSequence,
 } from "@/lib/barcode-utils";
@@ -17,70 +18,43 @@ interface GeneratorFormProps {
 }
 
 export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) {
-  const [type, setType] = useState<BarcodeType>("UPC-A");
-  const [baseNumber, setBaseNumber] = useState("07920579974");
+  const [type, setType] = useState<BarcodeType>("EAN-13");
+  const [baseNumber, setBaseNumber] = useState("0718852675153");
   const [quantity, setQuantity] = useState("20");
   const [error, setError] = useState<string | null>(null);
 
-  const baseLength = type === "UPC-A" ? 11 : 12;
-  const fullLength = baseLength + 1; // includes check digit
-
-  const getLengths = (barcodeType: BarcodeType) => {
-    const base = barcodeType === "UPC-A" ? 11 : 12;
-    return { base, full: base + 1 };
-  };
+  const { baseLength, fullLength } = BARCODE_SPECS[type];
 
   // Reset default value when switching type so it fits
   const handleTypeChange = (newType: BarcodeType) => {
     setType(newType);
     setError(null);
-    if (newType === "EAN-13" && baseNumber === "07920579974") {
-      setBaseNumber("071885267494");
-    } else if (newType === "UPC-A" && baseNumber === "071885267494") {
-      setBaseNumber("07920579974");
-    } else {
-      const { full } = getLengths(newType);
-      setBaseNumber((current) => current.slice(0, full));
-    }
+    const defaults: Record<BarcodeType, string> = {
+      "EAN-13": "0718852675153",
+      "UPC-A": "079205799742",
+      "EAN-8": "12345670",
+      "Code 128": "000123456789",
+    };
+    setBaseNumber(defaults[newType]);
   };
 
   const handleBaseNumberChange = (value: string) => {
-    const digits = value.replace(/\D/g, "");
-    const inferredType: BarcodeType = digits.length === 13 ? "EAN-13" : type;
-    const { full } = getLengths(inferredType);
-
-    if (digits.length <= full) {
-      if (inferredType !== type) {
-        setType(inferredType);
-        setError(null);
-      }
-      setBaseNumber(digits);
-    }
+    const barcodeValue = String(value);
+    const cleaned = type === "Code 128" ? barcodeValue : barcodeValue.replace(/\D/g, "");
+    if (fullLength === null || cleaned.length <= fullLength) setBaseNumber(cleaned);
   };
 
   const handleGenerate = useCallback(() => {
     setError(null);
 
-    // Accept either base length or full length (auto-strip check digit)
-    let effectiveBase = baseNumber;
-    if (effectiveBase.length === fullLength) {
-      effectiveBase = effectiveBase.slice(0, baseLength);
-    }
-
-    const validation = validateBaseNumber(effectiveBase, type);
+    const barcodeValue = String(baseNumber).trim();
+    const validation = validateBaseNumber(barcodeValue, type);
     if (!validation.valid) {
       setError(validation.error || "Invalid base number");
       return;
     }
 
-    if (effectiveBase.length !== baseLength) {
-      setError(
-        `Enter ${baseLength} digits (base) or ${fullLength} digits (full ${type}) — got ${effectiveBase.length}`
-      );
-      return;
-    }
-
-    const qty = parseInt(quantity, 10);
+    const qty = Number(quantity);
     if (isNaN(qty) || qty < 1) {
       setError("Quantity must be at least 1");
       return;
@@ -91,12 +65,12 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
     }
 
     try {
-      const barcodes = generateBarcodeSequence(effectiveBase, qty, type);
+      const barcodes = generateBarcodeSequence(barcodeValue, qty, type);
       onGenerate(barcodes, type);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
     }
-  }, [baseNumber, quantity, type, onGenerate, baseLength, fullLength]);
+  }, [baseNumber, quantity, type, onGenerate]);
 
   return (
     <div className="space-y-6">
@@ -112,22 +86,24 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
           htmlFor="baseNumber"
           className="text-sm font-medium text-foreground"
         >
-          Starting Number ({baseLength} or {fullLength} digits)
+          {type === "Code 128" ? "Starting Value" : `Starting Number (${baseLength} or ${fullLength} digits)`}
         </Label>
         <Input
           key={type}
           id="baseNumber"
           type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={fullLength}
+          inputMode={type === "Code 128" ? "text" : "numeric"}
+          pattern={type === "Code 128" ? undefined : "[0-9]*"}
+          maxLength={fullLength ?? 80}
           value={baseNumber}
           onChange={(e) => handleBaseNumberChange(e.target.value)}
-          placeholder={`Enter ${baseLength} or ${fullLength} digits`}
+          placeholder={type === "Code 128" ? "Enter a value" : `Enter ${baseLength} or ${fullLength} digits`}
           className="font-mono text-lg tracking-wider h-12"
         />
         <p className="text-xs text-muted-foreground">
-          Paste a full {fullLength}-digit {type} — we'll strip and recalculate the check digit automatically.
+          {type === "Code 128"
+            ? "Values stay as text; numeric values can be generated as a sequence."
+            : `Enter ${baseLength} base digits to calculate the check digit, or ${fullLength} complete digits to validate it.`}
         </p>
       </div>
 

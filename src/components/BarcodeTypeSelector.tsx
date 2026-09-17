@@ -11,14 +11,17 @@ export function BarcodeTypeSelector({
   onChange,
 }: BarcodeTypeSelectorProps) {
   const options: { type: BarcodeType; label: string; digits: string }[] = [
-    { type: "UPC-A", label: "UPC-A", digits: "12 digits" },
     { type: "EAN-13", label: "EAN-13", digits: "13 digits" },
+    { type: "UPC-A", label: "UPC-A", digits: "12 digits" },
+    { type: "EAN-8", label: "EAN-8", digits: "8 digits" },
+    { type: "Code 128", label: "Code 128", digits: "Variable length" },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-3">
       {options.map((option) => (
         <motion.button
+          type="button"
           key={option.type}
           onClick={() => onChange(option.type)}
           className={`relative p-4 rounded-lg border-2 transition-all duration-200 text-left ${
