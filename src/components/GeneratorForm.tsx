@@ -32,16 +32,14 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
     const defaults: Record<BarcodeType, string> = {
       "EAN-13": "0718852675153",
       "UPC-A": "079205799742",
-      "EAN-8": "12345670",
-      "Code 128": "000123456789",
     };
     setBaseNumber(defaults[newType]);
   };
 
   const handleBaseNumberChange = (value: string) => {
     const barcodeValue = String(value);
-    const cleaned = type === "Code 128" ? barcodeValue : barcodeValue.replace(/\D/g, "");
-    if (fullLength === null || cleaned.length <= fullLength) setBaseNumber(cleaned);
+    const cleaned = barcodeValue.replace(/\D/g, "");
+    if (cleaned.length <= fullLength) setBaseNumber(cleaned);
   };
 
   const handleGenerate = useCallback(() => {
@@ -86,24 +84,22 @@ export function GeneratorForm({ onGenerate, isGenerating }: GeneratorFormProps) 
           htmlFor="baseNumber"
           className="text-sm font-medium text-foreground"
         >
-          {type === "Code 128" ? "Starting Value" : `Starting Number (${baseLength} or ${fullLength} digits)`}
+          {`Starting Number (${baseLength} or ${fullLength} digits)`}
         </Label>
         <Input
           key={type}
           id="baseNumber"
           type="text"
-          inputMode={type === "Code 128" ? "text" : "numeric"}
-          pattern={type === "Code 128" ? undefined : "[0-9]*"}
-          maxLength={fullLength ?? 80}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={fullLength}
           value={baseNumber}
           onChange={(e) => handleBaseNumberChange(e.target.value)}
-          placeholder={type === "Code 128" ? "Enter a value" : `Enter ${baseLength} or ${fullLength} digits`}
+          placeholder={`Enter ${baseLength} or ${fullLength} digits`}
           className="font-mono text-lg tracking-wider h-12"
         />
         <p className="text-xs text-muted-foreground">
-          {type === "Code 128"
-            ? "Values stay as text; numeric values can be generated as a sequence."
-            : `Enter ${baseLength} base digits to calculate the check digit, or ${fullLength} complete digits to validate it.`}
+          {`Enter ${baseLength} base digits to calculate the check digit, or ${fullLength} complete digits to validate it.`}
         </p>
       </div>
 

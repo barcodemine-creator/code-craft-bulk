@@ -25,8 +25,12 @@ export function BarcodePreview({ code, type, index }: BarcodePreviewProps) {
         width: 1.5,
         height: 60,
         displayValue: true,
+        flat: false,
         fontSize: 12,
         margin: 8,
+        // Wider quiet zones so scanners read the full EAN-13 symbol
+        marginLeft: type === "EAN-13" ? 24 : 12,
+        marginRight: type === "EAN-13" ? 20 : 12,
         background: "#ffffff",
         lineColor: "#000000",
       });
@@ -55,8 +59,6 @@ export function BarcodePreview({ code, type, index }: BarcodePreviewProps) {
           const formats: Record<BarcodeType, BarcodeFormat> = {
             "EAN-13": BarcodeFormat.EAN_13,
             "UPC-A": BarcodeFormat.UPC_A,
-            "EAN-8": BarcodeFormat.EAN_8,
-            "Code 128": BarcodeFormat.CODE_128,
           };
           const hints = new Map<DecodeHintType, unknown>();
           hints.set(DecodeHintType.POSSIBLE_FORMATS, [formats[type]]);
