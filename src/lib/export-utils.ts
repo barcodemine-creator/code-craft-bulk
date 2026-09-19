@@ -68,8 +68,12 @@ function generateBarcodeSVG(code: string, type: BarcodeType, hdMode: boolean = t
     width: width,
     height: height,
     displayValue: true,
+    flat: false,
     fontSize: fontSize,
     margin: margin,
+    // EAN-13 needs a wider left quiet zone so the leading digit is decoded
+    marginLeft: type === "EAN-13" ? margin * 3 : margin,
+    marginRight: type === "EAN-13" ? margin * 2.5 : margin,
     background: "#ffffff",
     lineColor: "#000000",
     textMargin: hdMode ? 8 : 4,

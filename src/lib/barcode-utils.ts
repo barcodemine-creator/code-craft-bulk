@@ -1,15 +1,15 @@
 // UPC-A checksum calculation (11-digit base → 1 check digit)
-export type BarcodeType = "EAN-13" | "UPC-A" | "EAN-8" | "Code 128";
+export type BarcodeType = "EAN-13" | "UPC-A";
 
 export const BARCODE_SPECS: Record<BarcodeType, {
-  baseLength: number | null;
-  fullLength: number | null;
-  format: "ean13" | "upc" | "ean8" | "CODE128";
+  baseLength: number;
+  fullLength: number;
+  format: "ean13" | "upc";
 }> = {
+  // EAN-13 is ALWAYS encoded with the explicit ean13 encoder, even when the
+  // value starts with 0. Never fall back to the upc encoder for EAN-13.
   "EAN-13": { baseLength: 12, fullLength: 13, format: "ean13" },
   "UPC-A": { baseLength: 11, fullLength: 12, format: "upc" },
-  "EAN-8": { baseLength: 7, fullLength: 8, format: "ean8" },
-  "Code 128": { baseLength: null, fullLength: null, format: "CODE128" },
 };
 
 const digitAt = (value: string, index: number): number => value.charCodeAt(index) - 48;
@@ -45,13 +45,6 @@ export function calculateEAN13CheckDigit(base12: string): number {
   return (10 - (sum % 10)) % 10;
 }
 
-export function calculateEAN8CheckDigit(base7: string): number {
-  if (!/^\d{7}$/.test(base7)) throw new Error("EAN-8 base must be exactly 7 digits");
-  let sum = 0;
-  for (let i = 0; i < 7; i++) sum += digitAt(base7, i) * (i % 2 === 0 ? 3 : 1);
-  return (10 - (sum % 10)) % 10;
-}
-
 export function incrementNumericString(value: string): string {
   if (!/^\d+$/.test(value)) throw new Error("Barcode value must contain only digits");
   const digits = value.split("");
@@ -71,26 +64,19 @@ export function generateFullBarcode(
   type: BarcodeType
 ): string {
   const barcodeBase = String(base).trim();
-  if (type === "Code 128") {
-    if (!barcodeBase) throw new Error("Code 128 value is required");
-    return barcodeBase;
-  }
   const expectedLength = BARCODE_SPECS[type].baseLength;
-  if (expectedLength === null || barcodeBase.length !== expectedLength || !/^\d+$/.test(barcodeBase)) {
+  if (barcodeBase.length !== expectedLength || !/^\d+$/.test(barcodeBase)) {
     throw new Error(`${type} requires exactly ${expectedLength} numeric base digits`);
   }
   const checkDigit = type === "UPC-A"
     ? calculateUPCACheckDigit(barcodeBase)
-    : type === "EAN-8"
-      ? calculateEAN8CheckDigit(barcodeBase)
-      : calculateEAN13CheckDigit(barcodeBase);
+    : calculateEAN13CheckDigit(barcodeBase);
   return barcodeBase + String(checkDigit);
 }
 
 export function normalizeBarcodeInput(value: string, type: BarcodeType): string {
   const barcodeValue = String(value).trim();
   if (!barcodeValue) throw new Error("Barcode value is required");
-  if (type === "Code 128") return barcodeValue;
   if (!/^\d+$/.test(barcodeValue)) throw new Error(`${type} must contain only numeric characters`);
   const { baseLength, fullLength } = BARCODE_SPECS[type];
   if (barcodeValue.length === baseLength) return generateFullBarcode(barcodeValue, type);
@@ -111,13 +97,9 @@ export function generateBarcodeSequence(
   type: BarcodeType
 ): string[] {
   const firstValue = normalizeBarcodeInput(startValue, type);
-  if (type === "Code 128" && !/^\d+$/.test(firstValue)) {
-    if (quantity !== 1) throw new Error("Code 128 sequences require a numeric starting value");
-    return [firstValue];
-  }
   const baseLength = BARCODE_SPECS[type].baseLength;
   const barcodes: string[] = [];
-  let currentBase = baseLength === null ? firstValue : firstValue.slice(0, baseLength);
+  let currentBase = firstValue.slice(0, baseLength);
 
   for (let i = 0; i < quantity; i++) {
     barcodes.push(generateFullBarcode(currentBase, type));

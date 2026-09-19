@@ -13,8 +13,6 @@ export function BarcodeTypeSelector({
   const options: { type: BarcodeType; label: string; digits: string }[] = [
     { type: "EAN-13", label: "EAN-13", digits: "13 digits" },
     { type: "UPC-A", label: "UPC-A", digits: "12 digits" },
-    { type: "EAN-8", label: "EAN-8", digits: "8 digits" },
-    { type: "Code 128", label: "Code 128", digits: "Variable length" },
   ];
 
   return (
